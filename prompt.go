@@ -28,12 +28,16 @@ func (p *Prompt) Run() {
 		if err != nil {
 			panic(err)
 		}
-		line, err := r.ReadString('\n')
+		line, _, err := r.ReadLine()
 
-		s := NewScanner(line)
-		tokens := s.ScanTokens()
-		for _, t := range tokens {
-			fmt.Println(t)
+		s := NewScanner(string(line))
+		tokens, err := s.ScanTokens()
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			for _, t := range tokens {
+				fmt.Println(t)
+			}
 		}
 	}
 }

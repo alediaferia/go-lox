@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -8,30 +9,36 @@ type Scanner struct {
 	source               *strings.Reader
 	start, current, line int64
 	tokens               []*Token
+	hasError             bool
 }
 
 func NewScanner(source string) *Scanner {
-	return &Scanner{strings.NewReader(source), 0, 0, 1, make([]*Token, 0)}
+	return &Scanner{strings.NewReader(source), 0, 0, 1, make([]*Token, 0), false}
 }
 
-func (s *Scanner) ScanTokens() []*Token {
+func (s *Scanner) ScanTokens() ([]*Token, error) {
+	var err error
 	for !s.atEnd() {
 		s.start = s.current
-		s.scanToken()
+		err = s.scanToken()
+	}
+
+	if err != nil {
+		return s.tokens, err
 	}
 	s.tokens = append(s.tokens, &Token{EOF, "", nil, s.line})
 
-	return s.tokens
+	return s.tokens, nil
 }
 
 func (s *Scanner) atEnd() bool {
 	return s.current >= s.source.Size()
 }
 
-func (s *Scanner) scanToken() {
+func (s *Scanner) scanToken() error {
 	ch, err := s.advance()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	switch ch {
@@ -55,7 +62,15 @@ func (s *Scanner) scanToken() {
 		s.addToken(Semicolon)
 	case '*':
 		s.addToken(Star)
+	default:
+		err = s.newError(s.line, "", "Unexpected character")
 	}
+
+	return err
+}
+
+func (s *Scanner) newError(line int64, where string, message string) error {
+	return fmt.Errorf("[line %d] Error: %s; %s", line, where, message)
 }
 
 func (s *Scanner) advance() (rune, error) {
