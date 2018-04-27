@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 )
 
@@ -20,7 +21,6 @@ func NewPrompt(reader io.Reader, writer io.Writer) *Prompt {
 func (p *Prompt) Run() {
 	r := bufio.NewReader(p.reader)
 	w := bufio.NewWriter(p.writer)
-	s := &Scanner{}
 
 	for {
 		_, err := w.WriteString(" > ")
@@ -29,7 +29,11 @@ func (p *Prompt) Run() {
 			panic(err)
 		}
 		line, err := r.ReadString('\n')
-		tokens := s.ScanTokens(line)
-		println(tokens)
+
+		s := NewScanner(line)
+		tokens := s.ScanTokens()
+		for _, t := range tokens {
+			fmt.Println(t)
+		}
 	}
 }
