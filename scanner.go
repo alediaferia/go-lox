@@ -97,6 +97,8 @@ func (s *Scanner) scanToken() error {
 	case ' ', '\r', '\t':
 	case '\n':
 		s.line++
+	case '"':
+		s.string()
 	default:
 		err = s.newError(s.line, "", "Unexpected character")
 	}
@@ -161,4 +163,27 @@ func (s *Scanner) peek() byte {
 	}
 
 	return b[0]
+}
+
+func (s *Scanner) string() {
+	for s.peek() != '"' && !s.atEnd() {
+		if s.peek() == '\n' {
+			s.line++
+		}
+		s.advance()
+	}
+
+	if s.atEnd() {
+		s.newError(s.line, "", "Unterminated string")
+		return
+	}
+
+	s.advance()
+	value := make([]byte, s.current-1-s.start-1)
+	_, err := s.source.ReadAt(value, s.start+1)
+	if err != nil {
+		panic(err)
+	}
+
+	s.addTokenAndLiteral(String, value)
 }
