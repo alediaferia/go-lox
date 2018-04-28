@@ -86,6 +86,14 @@ func (s *Scanner) scanToken() error {
 		} else {
 			s.addToken(Greater)
 		}
+	case '/':
+		if s.match('/') {
+			for s.peek() != '\x00' && !s.atEnd() {
+				s.advance()
+			}
+		} else {
+			s.addToken(Slash)
+		}
 	default:
 		err = s.newError(s.line, "", "Unexpected character")
 	}
@@ -93,6 +101,7 @@ func (s *Scanner) scanToken() error {
 	return err
 }
 func (s *Scanner) advance() (rune, error) {
+	s.source.Seek(s.current, 0)
 	ch, size, err := s.source.ReadRune()
 	s.current += int64(size)
 	return ch, err
@@ -135,4 +144,18 @@ func (s *Scanner) match(ch byte) bool {
 
 func (s *Scanner) newError(line int64, where string, message string) error {
 	return fmt.Errorf("[line %d] Error: %s; %s", line, where, message)
+}
+
+func (s *Scanner) peek() byte {
+	if s.atEnd() {
+		return '\x00'
+	}
+
+	b := make([]byte, 1)
+	_, err := s.source.ReadAt(b, s.current)
+	if err != nil {
+		panic(err)
+	}
+
+	return b[0]
 }
