@@ -62,17 +62,36 @@ func (s *Scanner) scanToken() error {
 		s.addToken(Semicolon)
 	case '*':
 		s.addToken(Star)
+	case '!':
+		if s.match('=') {
+			s.addToken(BangEqual)
+		} else {
+			s.addToken(Bang)
+		}
+	case '=':
+		if s.match('=') {
+			s.addToken(EqualEqual)
+		} else {
+			s.addToken(Less)
+		}
+	case '<':
+		if s.match('=') {
+			s.addToken(LessEqual)
+		} else {
+			s.addToken(Less)
+		}
+	case '>':
+		if s.match('=') {
+			s.addToken(GreaterEqual)
+		} else {
+			s.addToken(Greater)
+		}
 	default:
 		err = s.newError(s.line, "", "Unexpected character")
 	}
 
 	return err
 }
-
-func (s *Scanner) newError(line int64, where string, message string) error {
-	return fmt.Errorf("[line %d] Error: %s; %s", line, where, message)
-}
-
 func (s *Scanner) advance() (rune, error) {
 	ch, size, err := s.source.ReadRune()
 	s.current += int64(size)
@@ -84,18 +103,24 @@ func (s *Scanner) addToken(t TokenType) {
 }
 
 func (s *Scanner) addTokenAndLiteral(t TokenType, literal interface{}) error {
-	s.source.Seek(s.start, 0)
-	var text string
-	for i := int64(0); i < s.current-s.start; {
-		ch, size, err := s.source.ReadRune()
-		if err != nil {
-			return err
-		}
-		text = text + string(ch)
-		i += int64(size)
+	text := make([]byte, s.current-s.start)
+	_, err := s.source.ReadAt(text, s.start)
+	if err != nil {
+		return err
 	}
 
-	s.tokens = append(s.tokens, &Token{t, text, literal, s.line})
+	s.tokens = append(s.tokens, &Token{t, string(text), literal, s.line})
 
 	return nil
+}
+
+func (s *Scanner) match(ch rune) bool {
+	if s.atEnd() {
+		return false
+	}
+	return false
+}
+
+func (s *Scanner) newError(line int64, where string, message string) error {
+	return fmt.Errorf("[line %d] Error: %s; %s", line, where, message)
 }

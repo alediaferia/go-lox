@@ -28,9 +28,11 @@ func (p *Prompt) Run() {
 		if err != nil {
 			panic(err)
 		}
-		line, _, err := r.ReadLine()
-
-		s := NewScanner(string(line))
+		line, err := r.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		s := NewScanner(string(line[:len(line)-1]))
 		tokens, err := s.ScanTokens()
 		if err != nil {
 			fmt.Println(err)
