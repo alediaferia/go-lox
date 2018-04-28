@@ -114,11 +114,23 @@ func (s *Scanner) addTokenAndLiteral(t TokenType, literal interface{}) error {
 	return nil
 }
 
-func (s *Scanner) match(ch rune) bool {
+func (s *Scanner) match(ch byte) bool {
 	if s.atEnd() {
 		return false
 	}
-	return false
+
+	b := make([]byte, 1)
+	_, err := s.source.ReadAt(b, s.current)
+	if err != nil {
+		panic(err)
+	}
+
+	if b[0] != ch {
+		return false
+	}
+
+	s.current++
+	return true
 }
 
 func (s *Scanner) newError(line int64, where string, message string) error {
