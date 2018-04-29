@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -100,7 +101,11 @@ func (s *Scanner) scanToken() error {
 	case '"':
 		s.string()
 	default:
-		err = s.newError(s.line, "", "Unexpected character")
+		if s.isDigit(string(ch)[0]) {
+			s.number()
+		} else {
+			err = s.newError(s.line, "", "Unexpected character")
+		}
 	}
 
 	return err
@@ -128,6 +133,10 @@ func (s *Scanner) addTokenAndLiteral(t TokenType, literal interface{}) error {
 	return nil
 }
 
+func (s *Scanner) isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
+}
+
 func (s *Scanner) match(ch byte) bool {
 	if s.atEnd() {
 		return false
@@ -151,6 +160,32 @@ func (s *Scanner) newError(line int64, where string, message string) error {
 	return fmt.Errorf("[line %d] Error: %s; %s", line, where, message)
 }
 
+func (s *Scanner) number() {
+	for s.isDigit(s.peek()) {
+		s.advance()
+	}
+
+	if s.peek() == '.' && s.isDigit(s.peekNext()) {
+		s.advance()
+		for s.isDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	b := make([]byte, s.current-s.start)
+	_, err := s.source.ReadAt(b, s.start)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := strconv.ParseFloat(string(b), 64)
+	if err != nil {
+		panic(err)
+	}
+
+	s.addTokenAndLiteral(Number, f)
+}
+
 func (s *Scanner) peek() byte {
 	if s.atEnd() {
 		return '\x00'
@@ -158,6 +193,20 @@ func (s *Scanner) peek() byte {
 
 	b := make([]byte, 1)
 	_, err := s.source.ReadAt(b, s.current)
+	if err != nil {
+		panic(err)
+	}
+
+	return b[0]
+}
+
+func (s *Scanner) peekNext() byte {
+	if s.current+1 >= s.source.Size() {
+		return '\x00'
+	}
+
+	b := make([]byte, 1)
+	_, err := s.source.ReadAt(b, s.current+1)
 	if err != nil {
 		panic(err)
 	}
