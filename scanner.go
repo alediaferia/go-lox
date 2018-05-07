@@ -103,6 +103,8 @@ func (s *Scanner) scanToken() error {
 	default:
 		if s.isDigit(string(ch)[0]) {
 			s.number()
+		} else if s.isAlpha(string(ch)[0]) {
+			s.identifier()
 		} else {
 			err = s.newError(s.line, "", "Unexpected character")
 		}
@@ -131,6 +133,39 @@ func (s *Scanner) addTokenAndLiteral(t TokenType, literal interface{}) error {
 	s.tokens = append(s.tokens, &Token{t, string(text), literal, s.line})
 
 	return nil
+}
+
+func (s *Scanner) identifier() {
+	for s.isAlphaNumeric(s.peek()) {
+		_, err := s.advance()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// See if the identifier is a reserved word.
+	text := make([]byte, s.current-s.start)
+	_, err := s.source.ReadAt(text, s.start)
+	if err != nil {
+		panic(err)
+	}
+
+	t, ok := keywords[string(text)]
+	if !ok {
+		t = Identifier
+	}
+
+	s.addToken(t)
+}
+
+func (s *Scanner) isAlpha(ch byte) bool {
+	return (ch >= 'a' && ch <= 'z') ||
+		(ch >= 'A' && ch <= 'Z') ||
+		ch == '_'
+}
+
+func (s *Scanner) isAlphaNumeric(ch byte) bool {
+	return s.isAlpha(ch) || s.isDigit(ch)
 }
 
 func (s *Scanner) isDigit(ch byte) bool {
